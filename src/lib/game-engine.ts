@@ -77,7 +77,7 @@ export function createGame(): GameState {
     board: Array.from({ length: 18 }, () => Array(10).fill(0)),
     piece: newPiece(),
     paddleX: 270,
-    ball: { x: 300, y: 250, vx: 3.4, vy: 3.6 },
+    ball: { x: 300, y: 250, vx: 5.2, vy: 5.5 },
     bricks: Array.from({ length: 4 }, () => Array(9).fill(true)),
     enemyPaddleX: 270,
     enemies: Array.from({ length: 3 }, (_, row) =>
@@ -190,7 +190,7 @@ function stepPong(game: GameState) {
   ball.x += ball.vx;
   ball.y += ball.vy;
   if (ball.x < 12 || ball.x > 588) ball.vx *= -1;
-  game.enemyPaddleX += Math.sign(ball.x - (game.enemyPaddleX + 45)) * 2.2;
+  game.enemyPaddleX += Math.sign(ball.x - (game.enemyPaddleX + 45)) * 3.2;
 
   if (ball.vy > 0 && ball.y > 328 && ball.y < 348 && ball.x > game.paddleX - 5 && ball.x < game.paddleX + 96) {
     ball.vy = -Math.abs(ball.vy);
@@ -256,11 +256,16 @@ export function advanceGame(game: GameState, id: GameId) {
 
 export function handleGameKey(game: GameState, id: GameId, key: string) {
   const normalized = key.toLowerCase();
+  if (game.over) {
+    Object.assign(game, createGame());
+    game.started = true;
+    return;
+  }
   if (normalized === "p" && !game.over) {
     game.paused = !game.paused;
     return;
   }
-  if (game.over || game.paused) return;
+  if (game.paused) return;
   game.started = true;
 
   if (id === "snake") {

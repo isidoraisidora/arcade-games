@@ -122,7 +122,7 @@ function draw(game: GameState, id: GameId, context: CanvasRenderingContext2D) {
     context.fillStyle = "#fff3dc";
     context.font = "13px monospace";
     context.fillText(
-      game.over ? "Close the cabinet to save your score" : game.paused ? "Press P to jump back in" : "Press any key to start",
+      game.over ? "Press any key to start a new round" : game.paused ? "Press P to jump back in" : "Press any key to start",
       300,
       198,
     );
@@ -156,6 +156,18 @@ export function GameCanvas({
   useEffect(() => {
     const game = gameRef.current;
     const keydown = (event: KeyboardEvent) => {
+      if (game.over) {
+        event.preventDefault();
+        if (!finishedRef.current) {
+          finishedRef.current = true;
+          finishRef.current(game.score);
+        }
+        finishedRef.current = false;
+        handleGameKey(game, gameId, event.key);
+        setFrame((frame) => frame + 1);
+        return;
+      }
+
       const accepted = ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", " ", "w", "a", "s", "d", "p"];
       if (!accepted.includes(event.key)) return;
       event.preventDefault();
@@ -174,7 +186,7 @@ export function GameCanvas({
         finishedRef.current = true;
         finishRef.current(game.score);
       }
-    }, gameId === "snake" ? 115 : 85);
+    }, gameId === "snake" ? 115 : gameId === "pong" ? 45 : 70);
 
     return () => {
       window.clearInterval(timer);

@@ -353,7 +353,6 @@ export function Arcade() {
           ) : (
             <>
               <button className="button button-small button-outline" onClick={() => setAuthMode("signin")}>LOG IN</button>
-              <button className="button button-small button-dark" onClick={() => setAuthMode("register")}>SAVE MY SCORES <ArrowRight size={14} /></button>
             </>
           )}
         </div>
@@ -413,33 +412,35 @@ export function Arcade() {
           <div className="section-overline"><Trophy size={15} /> THE HALL OF FAME</div>
           <h2>Big <span>energy.</span><br />Tiny screen.</h2>
           <p>{session?.user ? "Your best bragging rights, all in one place." : "Play as a guest, or make an account to keep your best runs for good."}</p>
-          {!session?.user && <button className="text-cta" onClick={() => setAuthMode("register")}>MAKE IT PERMANENT <ArrowRight size={14} /></button>}
           <div className="sticker-heart"><Heart size={18} fill="currentColor" /> GOOD<br />SPORT</div>
         </div>
-        <div className="scoreboard">
-          <div className="scoreboard-top"><div><span className="score-live-dot" /> {session?.user ? "ALL-TIME HIGH SCORES" : "YOUR SESSION SCORES"}</div><span>THE TOP 10</span></div>
-          <div className="scoreboard-head"><span>RANK</span><span>PLAYER</span><span>GAME</span><span>POINTS</span></div>
-          {leaderboardStatus === "loading" ? (
-            <div className="score-empty">TURNING ON THE SCOREBOARD...</div>
-          ) : leaderboardStatus === "offline" ? (
-            <div className="score-empty">
-              <span className="empty-star">✳</span>
-              THE SCOREBOARD IS TAKING A NAP.
-              <span className="empty-subtitle">{accountError || "Check your PostgreSQL connection and try again."}</span>
-            </div>
-          ) : scores.length === 0 ? (
-            <div className="score-empty"><span className="empty-star">✳</span> NO SCORES YET. WANT TO FIX THAT?<span className="empty-subtitle">Every legend starts with their first go.</span></div>
-          ) : (
-            scores.slice(0, 10).map((score, index) => (
-              <div className="score-row" key={`${score.game}-${score.username ?? "guest"}-${index}`}>
-                <span className="score-rank">{String(index + 1).padStart(2, "0")}</span>
-                <span className="score-player">{score.username ?? "YOU"}{index === 0 && <span className="player-tag">TOP PLAYER</span>}</span>
-                <span className={`score-game game-tag-${score.game}`}>{games.find((game) => game.id === score.game)?.title ?? score.game}</span>
-                <span className="score-points">{score.points.toLocaleString()}</span>
+        <div className="scoreboard-column">
+          <div className="scoreboard">
+            <div className="scoreboard-top"><div><span className="score-live-dot" /> {session?.user ? "ALL-TIME HIGH SCORES" : "YOUR SESSION SCORES"}</div><span>THE TOP 10</span></div>
+            <div className="scoreboard-head"><span>RANK</span><span>PLAYER</span><span>GAME</span><span>POINTS</span></div>
+            {leaderboardStatus === "loading" ? (
+              <div className="score-empty">TURNING ON THE SCOREBOARD...</div>
+            ) : leaderboardStatus === "offline" ? (
+              <div className="score-empty">
+                <span className="empty-star">✳</span>
+                THE SCOREBOARD IS TAKING A NAP.
+                <span className="empty-subtitle">{accountError || "Check your PostgreSQL connection and try again."}</span>
               </div>
-            ))
-          )}
-          <div className="scoreboard-bottom"><span>{session?.user ? "SCORES SAVED TO YOUR ACCOUNT" : "GUEST SCORES DISAPPEAR WHEN THIS TAB CLOSES"}</span><span>✳&nbsp; INSERT YOUR INITIALS</span></div>
+            ) : scores.length === 0 ? (
+              <div className="score-empty"><span className="empty-star">✳</span> NO SCORES YET. WANT TO FIX THAT?<span className="empty-subtitle">Every legend starts with their first go.</span></div>
+            ) : (
+              scores.slice(0, 10).map((score, index) => (
+                <div className="score-row" key={`${score.game}-${score.username ?? "guest"}-${index}`}>
+                  <span className="score-rank">{String(index + 1).padStart(2, "0")}</span>
+                  <span className="score-player">{score.username ?? "YOU"}{index === 0 && <span className="player-tag">TOP PLAYER</span>}</span>
+                  <span className={`score-game game-tag-${score.game}`}>{games.find((game) => game.id === score.game)?.title ?? score.game}</span>
+                  <span className="score-points">{score.points.toLocaleString()}</span>
+                </div>
+              ))
+            )}
+            <div className="scoreboard-bottom"><span>{session?.user ? "SCORES SAVED TO YOUR ACCOUNT" : "GUEST SCORES DISAPPEAR WHEN THIS TAB CLOSES"}</span><span>✳&nbsp; INSERT YOUR INITIALS</span></div>
+          </div>
+          {!session?.user && <button className="button button-small button-dark score-save-cta" onClick={() => setAuthMode("register")}>SAVE MY SCORES <ArrowRight size={14} /></button>}
         </div>
       </section>
 
