@@ -1,6 +1,7 @@
 import { hash } from "bcryptjs";
 import { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
+import { getDatabaseError } from "@/lib/database-errors";
 import { prisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
@@ -41,20 +42,20 @@ export async function POST(request: Request) {
     );
   }
 
-  const existingUser = await prisma.user.findFirst({
-    where: { OR: [{ email }, { username }] },
-    select: { id: true },
-  });
-
-  if (existingUser) {
-    return NextResponse.json(
-      { error: "That email or username is already in use." },
-      { status: 409 },
-    );
-  }
-
-  const passwordHash = await hash(body.password, 12);
   try {
+    const existingUser = await prisma.user.findFirst({
+      where: { OR: [{ email }, { username }] },
+      select: { id: true },
+    });
+
+    if (existingUser) {
+      return NextResponse.json(
+        { error: "That email or username is already in use." },
+        { status: 409 },
+      );
+    }
+
+    const passwordHash = await hash(body.password, 12);
     await prisma.user.create({
       data: { email, username, name: username, passwordHash },
     });
@@ -63,6 +64,13 @@ export async function POST(request: Request) {
       return NextResponse.json(
         { error: "That email or username is already in use." },
         { status: 409 },
+      );
+    }
+    const databaseError = getDatabaseError(error);
+    if (databaseError) {
+      return NextResponse.json(
+        { error: databaseError.message },
+        { status: databaseError.status },
       );
     }
     throw error;

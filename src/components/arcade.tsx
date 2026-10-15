@@ -46,6 +46,16 @@ type Game = {
 
 type Score = { game: string; points: number; username?: string };
 
+async function getApiError(response: Response, fallback: string) {
+  const body: unknown = await response.json().catch(() => null);
+  return typeof body === "object" &&
+    body !== null &&
+    "error" in body &&
+    typeof body.error === "string"
+    ? body.error
+    : fallback;
+}
+
 const games: Game[] = [
   { id: "snake", title: "Snake", description: "One snack at a time. Try not to bite your tail.", label: "THE CLASSIC", color: "mint", art: "snake", controls: "Arrow keys or WASD" },
   { id: "tetris", title: "Block Party", description: "Stack it up. Clear a line. Keep the party going.", label: "PUZZLE", color: "pink", art: "tetris", controls: "← → move · ↑ rotate" },
@@ -148,15 +158,11 @@ function AuthDialog({
             password,
           }),
         });
-        const result: unknown = await response.json().catch(() => null);
-        const message =
-          typeof result === "object" &&
-          result !== null &&
-          "error" in result &&
-          typeof result.error === "string"
-            ? result.error
-            : "We couldn't create your account. Check your PostgreSQL connection and try again.";
-        if (!response.ok) throw new Error(message);
+        if (!response.ok) {
+          throw new Error(
+            await getApiError(response, "We couldn't create your account. Please try again."),
+          );
+        }
       }
 
       const result = await signIn("credentials", {
@@ -228,6 +234,7 @@ export function Arcade() {
   const [authMode, setAuthMode] = useState<"signin" | "register" | null>(null);
   const [accountScores, setAccountScores] = useState<Score[]>([]);
   const [accountStatus, setAccountStatus] = useState<"loading" | "ready" | "offline">("loading");
+  const [accountError, setAccountError] = useState("");
   const [notice, setNotice] = useState("");
   const guestSnapshot = useSyncExternalStore(
     subscribeToSessionScores,
@@ -245,10 +252,14 @@ export function Arcade() {
   const loadScores = useCallback(async () => {
     try {
       const response = await fetch("/api/scores");
-      if (!response.ok) throw new Error(`Leaderboard request failed (${response.status}).`);
+      if (!response.ok) {
+        throw new Error(await getApiError(response, `Leaderboard request failed (${response.status}).`));
+      }
       setAccountScores(await response.json() as Score[]);
+      setAccountError("");
       setAccountStatus("ready");
-    } catch {
+    } catch (error) {
+      setAccountError(error instanceof Error ? error.message : "The leaderboard couldn't be loaded.");
       setAccountStatus("offline");
     }
   }, []);
@@ -259,17 +270,23 @@ export function Arcade() {
     let active = true;
     void fetch("/api/scores")
       .then(async (response) => {
-        if (!response.ok) throw new Error(`Leaderboard request failed (${response.status}).`);
+        if (!response.ok) {
+          throw new Error(await getApiError(response, `Leaderboard request failed (${response.status}).`));
+        }
         return await response.json() as Score[];
       })
       .then((result) => {
         if (active) {
           setAccountScores(result);
+          setAccountError("");
           setAccountStatus("ready");
         }
       })
-      .catch(() => {
-        if (active) setAccountStatus("offline");
+      .catch((error: unknown) => {
+        if (active) {
+          setAccountError(error instanceof Error ? error.message : "The leaderboard couldn't be loaded.");
+          setAccountStatus("offline");
+        }
       });
 
     return () => { active = false; };
@@ -297,11 +314,13 @@ export function Arcade() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ game, points }),
         });
-        if (!response.ok) throw new Error(`Score save failed (${response.status}).`);
+        if (!response.ok) {
+          throw new Error(await getApiError(response, `Score save failed (${response.status}).`));
+        }
         setNotice("SCORE SAVED TO YOUR HIGH SCORES");
         await loadScores();
-      } catch {
-        setNotice("Your score couldn't be saved. Check that PostgreSQL is running and try again.");
+      } catch (error) {
+        setNotice(error instanceof Error ? error.message : "Your score couldn't be saved.");
       }
       return;
     }
@@ -406,7 +425,7 @@ export function Arcade() {
             <div className="score-empty">
               <span className="empty-star">✳</span>
               THE SCOREBOARD IS TAKING A NAP.
-              <span className="empty-subtitle">Connect PostgreSQL and run <code>npm run db:push</code> to bring it back.</span>
+              <span className="empty-subtitle">{accountError || "Check your PostgreSQL connection and try again."}</span>
             </div>
           ) : scores.length === 0 ? (
             <div className="score-empty"><span className="empty-star">✳</span> NO SCORES YET. WANT TO FIX THAT?<span className="empty-subtitle">Every legend starts with their first go.</span></div>
