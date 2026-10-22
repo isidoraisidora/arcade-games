@@ -64,6 +64,10 @@ const games: Game[] = [
   { id: "invaders", title: "Space Invaders", description: "The aliens are back. Good thing you are, too.", label: "SHOOTER", color: "purple", art: "invaders", controls: "← → move · Space fire" },
 ];
 
+function isGameId(value: string): value is GameId {
+  return games.some((game) => game.id === value);
+}
+
 function Art({ game }: { game: Game }) {
   return (
     <div className={`game-art art-${game.color}`} aria-hidden="true">
@@ -231,8 +235,10 @@ function AuthDialog({
 export function Arcade() {
   const { data: session, status } = useSession();
   const [activeGame, setActiveGame] = useState<GameId | null>(null);
+  const [selectedLeaderboardGame, setSelectedLeaderboardGame] = useState<"all" | GameId>("all");
   const [authMode, setAuthMode] = useState<"signin" | "register" | null>(null);
   const [accountScores, setAccountScores] = useState<Score[]>([]);
+  const [accountLoadedUrl, setAccountLoadedUrl] = useState("");
   const [accountStatus, setAccountStatus] = useState<"loading" | "ready" | "offline">("loading");
   const [accountError, setAccountError] = useState("");
   const [notice, setNotice] = useState("");
@@ -241,34 +247,46 @@ export function Arcade() {
     getSessionScoresSnapshot,
     getSessionScoresSnapshot,
   );
-  const scores = session?.user ? accountScores : guestSnapshot.scores;
+  const scores = session?.user
+    ? accountScores
+    : guestSnapshot.scores.filter(
+        (score) => selectedLeaderboardGame === "all" || score.game === selectedLeaderboardGame,
+      );
+  const leaderboardUrl =
+    selectedLeaderboardGame === "all"
+      ? "/api/scores"
+      : `/api/scores?game=${selectedLeaderboardGame}`;
   const leaderboardStatus =
     status === "loading"
       ? "loading"
       : session?.user
+      ? accountLoadedUrl === leaderboardUrl
         ? accountStatus
-        : "ready";
+        : "loading"
+      : "ready";
 
   const loadScores = useCallback(async () => {
     try {
-      const response = await fetch("/api/scores");
+      const response = await fetch(leaderboardUrl);
       if (!response.ok) {
         throw new Error(await getApiError(response, `Leaderboard request failed (${response.status}).`));
       }
       setAccountScores(await response.json() as Score[]);
+      setAccountLoadedUrl(leaderboardUrl);
       setAccountError("");
       setAccountStatus("ready");
     } catch (error) {
+      setAccountLoadedUrl(leaderboardUrl);
       setAccountError(error instanceof Error ? error.message : "The leaderboard couldn't be loaded.");
       setAccountStatus("offline");
     }
-  }, []);
+  }, [leaderboardUrl]);
 
   useEffect(() => {
     if (status !== "authenticated") return;
 
     let active = true;
-    void fetch("/api/scores")
+    void fetch(leaderboardUrl)
       .then(async (response) => {
         if (!response.ok) {
           throw new Error(await getApiError(response, `Leaderboard request failed (${response.status}).`));
@@ -278,19 +296,21 @@ export function Arcade() {
       .then((result) => {
         if (active) {
           setAccountScores(result);
+          setAccountLoadedUrl(leaderboardUrl);
           setAccountError("");
           setAccountStatus("ready");
         }
       })
       .catch((error: unknown) => {
         if (active) {
+          setAccountLoadedUrl(leaderboardUrl);
           setAccountError(error instanceof Error ? error.message : "The leaderboard couldn't be loaded.");
           setAccountStatus("offline");
         }
       });
 
     return () => { active = false; };
-  }, [status]);
+  }, [status, leaderboardUrl]);
 
   useEffect(() => {
     const closeOnEscape = (event: KeyboardEvent) => {
@@ -417,6 +437,24 @@ export function Arcade() {
         <div className="scoreboard-column">
           <div className="scoreboard">
             <div className="scoreboard-top"><div><span className="score-live-dot" /> {session?.user ? "ALL-TIME HIGH SCORES" : "YOUR SESSION SCORES"}</div><span>THE TOP 10</span></div>
+            <label className="leaderboard-filter">
+              <span>GAME</span>
+              <select
+                aria-label="Filter leaderboard by game"
+                value={selectedLeaderboardGame}
+                onChange={(event) => {
+                  const value = event.currentTarget.value;
+                  if (value === "all" || isGameId(value)) {
+                    setSelectedLeaderboardGame(value);
+                  }
+                }}
+              >
+                <option value="all">ALL GAMES</option>
+                {games.map((game) => (
+                  <option key={game.id} value={game.id}>{game.title}</option>
+                ))}
+              </select>
+            </label>
             <div className="scoreboard-head"><span>RANK</span><span>PLAYER</span><span>GAME</span><span>POINTS</span></div>
             {leaderboardStatus === "loading" ? (
               <div className="score-empty">TURNING ON THE SCOREBOARD...</div>

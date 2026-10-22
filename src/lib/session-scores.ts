@@ -50,9 +50,15 @@ export function subscribeToSessionScores(callback: () => void) {
 }
 
 export function recordSessionScore(score: SessionScore): SessionScoresSnapshot {
+  const scoresPerGame = new Map<string, number>();
   const scores = [score, ...getSessionScoresSnapshot().scores]
     .sort((left, right) => right.points - left.points)
-    .slice(0, 10);
+    .filter((entry) => {
+      const count = scoresPerGame.get(entry.game) ?? 0;
+      if (count >= 10) return false;
+      scoresPerGame.set(entry.game, count + 1);
+      return true;
+    });
   let error = "";
 
   try {

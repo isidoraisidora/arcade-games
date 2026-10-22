@@ -147,6 +147,8 @@ a { color: inherit; text-decoration: none; }
 .scoreboard { background: var(--surface); border: 1px solid var(--line); }
 .scoreboard-top { min-height: 44px; display: flex; justify-content: space-between; align-items: center; padding: 0 17px; border-bottom: 1px solid var(--line); color: #eee9f3; font: 700 9px var(--mono); letter-spacing: .055em; }
 .scoreboard-top > div { display: flex; align-items: center; gap: 9px; }.scoreboard-top > span { color: #aaa5b5; font-size: 8px; }
+.leaderboard-filter { min-height: 42px; display: flex; align-items: center; gap: 10px; padding: 0 17px; border-bottom: 1px solid var(--line); color: #aaa5b5; background: #171821; font: 700 8px var(--mono); letter-spacing: .06em; }
+.leaderboard-filter select { min-width: 130px; padding: 6px 26px 6px 8px; border: 1px solid var(--line); border-radius: 0; color: #eee9f3; background: var(--surface); font: 700 8px var(--mono); }
 .scoreboard-head, .score-row { display: grid; grid-template-columns: 65px 1.3fr 1fr 75px; align-items: center; padding: 0 17px; }
 .scoreboard-head { height: 31px; color: #aaa5b5; background: var(--surface-raised); font: 700 8px var(--mono); letter-spacing: .06em; }
 .score-row { height: 40px; border-top: 1px solid #2b2c39; font-size: 10px; }

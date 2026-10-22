@@ -8,10 +8,15 @@ const games = ["snake", "tetris", "breakout", "pong", "invaders"];
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(request: Request) {
+  const requestedGame = new URL(request.url).searchParams.get("game");
+  if (requestedGame !== null && !games.includes(requestedGame)) {
+    return NextResponse.json({ error: "That game is not valid." }, { status: 400 });
+  }
+
   try {
     const scores = await prisma.gameScore.findMany({
-      where: { game: { in: games } },
+      where: { game: requestedGame ?? { in: games } },
       orderBy: { points: "desc" },
       take: 10,
       select: {
