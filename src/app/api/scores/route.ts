@@ -21,7 +21,13 @@ export async function GET() {
       },
     });
 
-    return NextResponse.json(scores);
+    return NextResponse.json(
+      scores.map(({ game, points, user }) => ({
+        game,
+        points,
+        username: user.username,
+      })),
+    );
   } catch (error) {
     const databaseError = getDatabaseError(error);
     if (databaseError) {
