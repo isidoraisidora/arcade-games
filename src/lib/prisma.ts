@@ -1,5 +1,6 @@
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@prisma/client";
+import { Pool } from "pg";
 
 const globalForPrisma = globalThis as typeof globalThis & {
   prisma?: PrismaClient;
@@ -12,8 +13,14 @@ function createPrismaClient() {
     throw new Error("DATABASE_URL is required to connect to PostgreSQL.");
   }
 
+  // 1. Create a pg Pool instance using the connection string
+  const pool = new Pool({ connectionString });
+
+  // 2. Pass the pool into the PrismaPg adapter
+  const adapter = new PrismaPg(pool);
+
   return new PrismaClient({
-    adapter: new PrismaPg({ connectionString }),
+    adapter,
   });
 }
 
